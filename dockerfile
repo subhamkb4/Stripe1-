@@ -1,40 +1,32 @@
-# Use official PHP Apache image
 FROM php:8.1-apache
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN docker-php-ext-install curl && docker-php-ext-enable curl
 
-# Install PHP extensions
-RUN docker-php-ext-install \
-    curl \
-    mysqli \
-    pdo \
-    pdo_mysql \
-    && docker-php-ext-enable curl
-
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite headers
-
-# Configure Apache
+# Apache configuration
+RUN a2enmod rewrite
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+RUN echo "<Directory /var/www/html>" >> /etc/apache2/apache2.conf
+RUN echo "    Options -Indexes +FollowSymLinks" >> /etc/apache2/apache2.conf
+RUN echo "    AllowOverride All" >> /etc/apache2/apache2.conf
+RUN echo "    DirectoryIndex app.php index.php index.html" >> /etc/apache2/apache2.conf
+RUN echo "    Require all granted" >> /etc/apache2/apache2.conf
+RUN echo "</Directory>" >> /etc/apache2/apache2.conf
 
 # Create logs directory
 RUN mkdir -p /var/www/html/logs && chmod 755 /var/www/html/logs
 
-# Copy application files
+# Copy app files
 COPY . /var/www/html/
 
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html/ \
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html/ && chmod -R 755 /var/www/html/
+
+EXPOSE 80
+
+CMD ["apache2-foreground"]RUN chown -R www-data:www-data /var/www/html/ \
     && chmod -R 755 /var/www/html/ \
     && chmod 644 /var/www/html/*.php
 
